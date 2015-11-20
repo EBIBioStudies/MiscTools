@@ -1,2 +1,2 @@
 Manifest-Version: 1.0
-Main-Class: uk.ac.ebi.biostd.tools.submit.Main
+Main-Class: uk.ac.ebi.biostd.tools.fetchpmc.Main

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project name="PT2PML" basedir="." xmlns:maven="antlib:org.apache.maven.artifact.ant" >
+<project name="MiscTools" basedir="." xmlns:maven="antlib:org.apache.maven.artifact.ant" >
 	<property name="build" location="build"/>
 	<property name="dist" location="dist"/>
 
@@ -18,7 +18,7 @@
 		<mkdir dir="${dist}"/>
 
 		<property name="manifest" location="MANIFEST.MF"/>
-		<property name="jarname" value="PTSubmit.jar"/>
+		<property name="jarname" value="BioStdTools.jar"/>
 		
 		
 		<maven:dependencies filesetId="deps">
