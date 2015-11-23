@@ -47,7 +47,13 @@ public interface Config
   @Option(shortName="i", defaultValue="1")
   public int getParallelFiles();
   
-  @Option(shortName="0", defaultValue="1")
+  @Option(shortName="o", defaultValue="1")
   public int getParallelSubmitters();
+  
+  @Option(shortName="r")
+  public boolean isSetPartitionedRootPath();
+
+  @Option(shortName="e")
+  public boolean isDontUseSecAccno();
 
 }

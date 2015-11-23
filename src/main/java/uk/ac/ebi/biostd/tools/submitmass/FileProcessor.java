@@ -64,15 +64,17 @@ public class FileProcessor implements Runnable
     }
    }
    
-   processFile(fr.getFile(),fr.getRequestId());
+   processFile(fr);
    
   }
   
  }
  
  
- private void processFile( File file, String fID )
+ private void processFile( FileRequest fReq )
  {
+  File file = fReq.getFile();
+  
   ErrorCounter ec = new ErrorCounterImpl();
   SimpleLogNode topLn = new SimpleLogNode(Level.SUCCESS, "Parsing file: '" + file + "'", ec);
 
@@ -128,15 +130,17 @@ public class FileProcessor implements Runnable
    
    return;
   }
+ 
+  String fID = file.getName();
   
-  Console.println(procName+": "+fID+": read "+doc.getSubmissions().size()+" submission");
+  Console.println(procName+": "+fReq+": read "+doc.getSubmissions().size()+" submission");
 
   
   SimpleLogNode.setLevels(topLn);
   
   if( topLn.getLevel().getPriority() >= Level.ERROR.getPriority() )
   {
-   Console.println(procName+": "+fID+": parser error");
+   Console.println(procName+": "+fReq+": parser error");
    
    try( PrintWriter errOut = new PrintWriter( outDir.resolve(file.getName()+".FAIL").toFile() )  ) 
    {
@@ -160,7 +164,13 @@ public class FileProcessor implements Runnable
 
    SubmitRequest sr = new SubmitRequest();
    
-   sr.setRequestId("F: "+fID+" S: "+i+"/"+n);
+   sr.setFileName(fID);
+   sr.setFileOrder(fReq.getOrder());
+   sr.setFileTotal(fReq.getTotal());
+   
+   sr.setOrder(i);
+   sr.setTotal(n);
+   
    sr.setSubmissionInfo(si);
    
    while( true )

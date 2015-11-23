@@ -104,7 +104,7 @@ public class SubmitTask implements Runnable
     continue;
    }
 
-   if(req.getRequestId() == null )
+   if(req.getFileName() == null )
    {
     while(true)
     {
@@ -121,20 +121,29 @@ public class SubmitTask implements Runnable
 
    SubmissionInfo si = req.getSubmissionInfo();
    
-   String acc = si.getSubmission().getRootSection().getAccNo();
+   String acc = null;
+   
+   
+   if( config.isDontUseSecAccno() )
+    acc = si.getSubmission().getAccNo();
+   else
+    acc = si.getRootSectionOccurance().getOriginalAccNo();
 
    if(acc == null)
-    acc = si.getSubmission().getAccNo();
+    acc = si.getAccNoOriginal();
 
-   if(acc.startsWith("!"))
-    acc = acc.substring(1);
+   
+//   if(acc != null && acc.startsWith("!"))
+//    acc = acc.substring(1);
 
-   Path okFile = outDir.resolve(acc + ".OK");
-   Path failFile = outDir.resolve(acc + ".FAIL");
+   String logFileName = req.getFileName()+"-"+req.getOrder()+"of"+req.getTotal();
+   
+   Path okFile = outDir.resolve(logFileName + ".OK");
+   Path failFile = outDir.resolve(logFileName + ".FAIL");
 
    if(Files.exists(okFile))
    {
-    Console.println(taskName+": Sbm: "+req.getRequestId()+" SKIP");
+    Console.println(taskName+": Sbm: "+req+" SKIP");
     continue;
    }
 
@@ -166,11 +175,17 @@ public class SubmitTask implements Runnable
 
    si.getSubmission().setAccNo(acc);
    si.setAccNoOriginal(acc);
-   si.getSubmission().setRootPath(AccNoUtil.getPartitionedPath(acc));
-   si.getRootSectionOccurance().setOriginalAccNo(null);
-   si.getRootSectionOccurance().setPrefix(null);
-   si.getRootSectionOccurance().setSuffix(null);
-   si.getSubmission().getRootSection().setAccNo(null);
+   
+   if( ! config.isDontUseSecAccno() )
+   {
+    si.getRootSectionOccurance().setOriginalAccNo(null);
+    si.getRootSectionOccurance().setPrefix(null);
+    si.getRootSectionOccurance().setSuffix(null);
+    si.getSubmission().getRootSection().setAccNo(null);
+   }
+   
+   if( config.isSetPartitionedRootPath() )
+    si.getSubmission().setRootPath(AccNoUtil.getPartitionedPath(acc));
 
    if(config.isForcePublic())
    {
@@ -218,7 +233,7 @@ public class SubmitTask implements Runnable
    }
    catch(SubmitException e1)
    {
-    Console.println(taskName+": Sbm: "+req.getRequestId()+" ERROR "+e1.getMessage());
+    Console.println(taskName+": Sbm: "+req+" ERROR "+e1.getMessage());
     
     logFile = failFile.toFile();
     try
@@ -229,7 +244,7 @@ public class SubmitTask implements Runnable
     }
     catch(FileNotFoundException | UnsupportedEncodingException e)
     {
-     Console.println(taskName+": Sbm: "+req.getRequestId()+" File '"+logFile+"' IO error: " + e.getMessage());
+     Console.println(taskName+": Sbm: "+req+" File '"+logFile+"' IO error: " + e.getMessage());
     }
     
     continue;
@@ -239,7 +254,7 @@ public class SubmitTask implements Runnable
    if(rep.getLog().getLevel() == Level.ERROR)
    {
     logFile = failFile.toFile();
-    Console.println(taskName+": Sbm: "+req.getRequestId()+" FAIL");
+    Console.println(taskName+": Sbm: "+req+" FAIL");
    }
    //  else if( rep.getLog().getLevel() == Level.WARN )
    //  {
@@ -248,7 +263,7 @@ public class SubmitTask implements Runnable
    //  }
    else
    {
-    Console.println(taskName+": Sbm: "+req.getRequestId()+" OK");
+    Console.println(taskName+": Sbm: "+req+" OK");
 
     if(Files.exists(failFile))
      try
@@ -271,15 +286,15 @@ public class SubmitTask implements Runnable
    }
    catch(FileNotFoundException e)
    {
-    Console.println(taskName+": Sbm: "+req.getRequestId()+" File not found " + logFile);
+    Console.println(taskName+": Sbm: "+req+" File not found " + logFile);
    }
    catch(UnsupportedEncodingException e)
    {
-    Console.println(taskName+": Sbm: "+req.getRequestId()+" UTF-8 is not supported");
+    Console.println(taskName+": Sbm: "+req+" UTF-8 is not supported");
    }
    catch(IOException e)
    {
-    Console.println(taskName+": Sbm: "+req.getRequestId()+" IO error: " + e.getMessage());
+    Console.println(taskName+": Sbm: "+req+" IO error: " + e.getMessage());
    }
 
   }

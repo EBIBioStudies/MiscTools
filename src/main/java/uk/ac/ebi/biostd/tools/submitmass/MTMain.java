@@ -143,13 +143,18 @@ public class MTMain
    FileRequest freq = new FileRequest();
    
    freq.setFile(file);
-   freq.setRequestId(file.getName()+" "+i+"/"+fileList.size());
+   freq.setOrder(i);
+   freq.setTotal(fileList.size());
+   freq.setRequestId(file.getName());
+   
    putToQueue(fileQueue,freq);
   }
   
   putToQueue(fileQueue,new FileRequest());
   
+  fileExec.shutdown();
   System.out.println("Waiting for file thread pool termination");
+  
   
   int timeout = FILE_TERM_TIMEOUT_SEC;
   long stime = System.currentTimeMillis();
@@ -171,6 +176,7 @@ public class MTMain
   if( timeout <=0 )
    System.out.println("File thread pool termination failed");
   
+  sbmExec.shutdown();
   System.out.println("Waiting for submission thread pool termination");
   
   timeout = SUBM_TERM_TIMEOUT_SEC;

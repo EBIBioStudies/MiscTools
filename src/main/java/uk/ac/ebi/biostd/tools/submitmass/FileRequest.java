@@ -6,7 +6,9 @@ public class FileRequest
 {
  private String requestId;
  private File   file;
-
+ private int order;
+ private int total;
+ 
  public String getRequestId()
  {
   return requestId;
@@ -25,5 +27,31 @@ public class FileRequest
  public void setFile(File filePath)
  {
   this.file = filePath;
+ }
+
+ public int getOrder()
+ {
+  return order;
+ }
+
+ public void setOrder(int order)
+ {
+  this.order = order;
+ }
+
+ public int getTotal()
+ {
+  return total;
+ }
+
+ public void setTotal(int total)
+ {
+  this.total = total;
+ }
+ 
+ @Override
+ public String toString()
+ {
+  return requestId+" "+order+"of"+total;
  }
 }
