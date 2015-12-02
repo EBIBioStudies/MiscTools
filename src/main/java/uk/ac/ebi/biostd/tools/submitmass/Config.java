@@ -56,4 +56,7 @@ public interface Config
   @Option(shortName="e")
   public boolean isDontUseSecAccno();
 
+  @Option(shortName="d")
+  public boolean isOutputDirPerFile();
+
 }

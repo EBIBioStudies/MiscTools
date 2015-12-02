@@ -87,6 +87,7 @@ public class FileProcessor implements Runnable
   if( pos >=0 )
    ext = file.getName().substring(pos+1);
   
+    
   if( "xlsx".equalsIgnoreCase(ext) )
    fmt = DataFormat.xlsx;
   else if( "xls".equalsIgnoreCase(ext) )
@@ -114,6 +115,8 @@ public class FileProcessor implements Runnable
    doc = CVSTVSParse.parse(file, "utf-8", ',', topLn);
   else if( fmt==DataFormat.tsv)
    doc = CVSTVSParse.parse(file, "utf-8", '\t', topLn);
+  else if( fmt==DataFormat.csvtsv)
+   doc = CVSTVSParse.parse(file, "utf-8", '\0', topLn);
   else if( fmt==DataFormat.csvtsv)
    doc = CVSTVSParse.parse(file, "utf-8", '\0', topLn);
   

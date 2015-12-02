@@ -12,7 +12,10 @@ public class FileDispencer
  private int fail;
  private int skip;
  
- public FileDispencer( List<Main.FileEntry> ents )
+ private int fileOrder;
+ private int totalFiles;
+ 
+ public FileDispencer( List<Main.FileEntry> ents, int ord, int tot )
  {
   entries = ents;
   ptr=0;
@@ -20,13 +23,16 @@ public class FileDispencer
   succ = 0;
   fail = 0;
   skip = 0;
+  
+  fileOrder = ord;
+  totalFiles=tot;
  }
  
  public synchronized FileEntry getEntry( String msg )
  {
   if( msg != null )
   {
-   System.out.println( msg+ " ("+(succ+fail+skip)+"/"+entries.size()+")");
+   System.out.println( msg+ " ("+fileOrder+"/"+totalFiles+ ") Entry ("+(succ+fail+skip)+"/"+entries.size()+")");
   }
   
   if( ptr >= entries.size() )

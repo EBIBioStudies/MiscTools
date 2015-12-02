@@ -41,8 +41,10 @@ public class CVSTVSParse
    else
     cs = Charset.forName("utf-8");
    
-   
-   text = FileUtil.readFile(infile, cs);
+   if( infile.getName().endsWith(".gz"))
+    text = FileUtil.readGzFile(infile, cs);
+   else
+    text = FileUtil.readFile(infile, cs);
   }
   catch(IOException e)
   {

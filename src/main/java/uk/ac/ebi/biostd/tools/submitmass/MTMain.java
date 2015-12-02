@@ -196,7 +196,8 @@ public class MTMain
   
   if( timeout <=0 )
    System.out.println("Submission thread pool termination failed");
-
+  else
+   System.out.println("All done. Finishing");
   
  }
  

@@ -138,8 +138,28 @@ public class SubmitTask implements Runnable
 
    String logFileName = req.getFileName()+"-"+req.getOrder()+"of"+req.getTotal();
    
-   Path okFile = outDir.resolve(logFileName + ".OK");
-   Path failFile = outDir.resolve(logFileName + ".FAIL");
+   Path fileOutDir = outDir;
+   
+   if( config.isOutputDirPerFile() )
+   {
+    fileOutDir = outDir.resolve( req.getFileName() );
+    
+    if( ! Files.exists(fileOutDir) )
+    {
+     try
+     {
+      Files.createDirectories(fileOutDir);
+     }
+     catch(IOException e)
+     {
+      e.printStackTrace();
+      return;
+     }
+    }
+   }
+   
+   Path okFile = fileOutDir.resolve(logFileName + ".OK");
+   Path failFile = fileOutDir.resolve(logFileName + ".FAIL");
 
    if(Files.exists(okFile))
    {

@@ -28,13 +28,37 @@ public class Main
    return;
   }
   
-  String srcFile = args[0];
+  File srcFile = new File( args[0] );
 
+  List<File> files  = new ArrayList<File>();
+  
+  if( srcFile.isDirectory() )
+  {
+   for( File f : srcFile.listFiles() )
+    files.add(f);
+  }
+  else
+   files.add(srcFile);
+  
+  File outDir = new File( args[1] );
+  
+  int i=1;
+  
+  for( File f : files )
+   processFile(f, outDir, i++, files.size());
+  
+ }
+ 
+ 
+ private static void processFile( File f, File basePath, int ord, int tot )
+ {
+  System.out.println("Processing file: '" + f + "' "+ord+"of"+tot);
+  
   ErrorCounter ec = new ErrorCounterImpl();
-  SimpleLogNode topLn = new SimpleLogNode(Level.SUCCESS, "Parsing file: '" + srcFile + "'", ec);
+  SimpleLogNode topLn = new SimpleLogNode(Level.SUCCESS, "Parsing file: '" + f + "' "+ord+"of"+tot, ec);
 
   
-  PMDoc doc = CVSTVSParse.parse(new File(srcFile), "utf-8", '\t', topLn);
+  PMDoc doc = CVSTVSParse.parse(f, "utf-8", '\t', topLn);
 
   
   System.out.println("Read "+doc.getSubmissions().size()+" submission");
@@ -54,6 +78,7 @@ public class Main
     FileEntry fe = new FileEntry();
     fe.submissionAcc=sacc;
     fe.fileName = fo.getFileRef().getName();
+    fe.srcFile=f.getName();
     
     files.add(fe);
    }
@@ -76,13 +101,11 @@ public class Main
   }
   
   
-  File basePath = new File( args[1] );
-  
   System.out.println("Found "+uniqFile.size()+" files");
   
   ExecutorService  pool = Executors.newFixedThreadPool(THREADS);
   
-  FileDispencer dsp = new FileDispencer(uniqFile);
+  FileDispencer dsp = new FileDispencer(uniqFile, ord, tot);
   
   for( int i=0; i < THREADS; i++ )
    pool.submit( new DownloadTask(basePath, dsp) );
@@ -101,14 +124,14 @@ public class Main
    }
   }
 
-  System.out.println("Download finished Total: "+uniqFile.size()+" Success: "+dsp.getSuccess()+" Fail: "+dsp.getFail()+" Skip: "+dsp.getSkip());
-  
+  System.err.println("File: "+f+" "+ord+"of"+tot+" download finished Total: "+uniqFile.size()+" Success: "+dsp.getSuccess()+" Fail: "+dsp.getFail()+" Skip: "+dsp.getSkip());
  }
  
  static class FileEntry implements Comparable<FileEntry>
  {
   String submissionAcc;
   String fileName;
+  String srcFile;
   
   @Override
   public boolean equals(Object obj) 
