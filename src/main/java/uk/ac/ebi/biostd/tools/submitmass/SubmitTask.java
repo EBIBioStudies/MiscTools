@@ -2,6 +2,7 @@ package uk.ac.ebi.biostd.tools.submitmass;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
@@ -12,15 +13,19 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 import uk.ac.ebi.biostd.authz.AccessTag;
 import uk.ac.ebi.biostd.in.AccessionMapping;
 import uk.ac.ebi.biostd.in.PMDoc;
 import uk.ac.ebi.biostd.in.SubmissionMapping;
+import uk.ac.ebi.biostd.in.pagetab.FileOccurrence;
 import uk.ac.ebi.biostd.in.pagetab.SubmissionInfo;
 import uk.ac.ebi.biostd.model.Submission;
 import uk.ac.ebi.biostd.model.SubmissionAttributeException;
@@ -37,22 +42,31 @@ import uk.ac.ebi.biostd.util.StringUtils;
 
 public class SubmitTask implements Runnable
 {
+ static final String EPMCDownloadURLPrefix = "http://www.ebi.ac.uk/europepmc/webservices/rest/";
+ static final String EPMCDownloadURLSuffix = "/supplementaryFiles";
  
  private String taskName;
 
  private BlockingQueue<SubmitRequest> sbmQueue;
  private Config config;
  private Path outDir;
+ private Path downloadDir;
  private String sess;
+ private Operation op;
  
  
- public SubmitTask(String taskName, BlockingQueue<SubmitRequest> sbmQueue, Config config, Path outDir, String sess)
+ public SubmitTask(String taskName, BlockingQueue<SubmitRequest> sbmQueue, Config config, Path outDir, Operation op, String sess)
  {
   this.taskName = taskName;
   this.sbmQueue = sbmQueue;
   this.config = config;
   this.outDir = outDir;
   this.sess = sess;
+  this.op=op;
+  
+  if( config.getDownloadEPMCDir() != null && config.getDownloadEPMCDir().length() > 0 )
+   downloadDir = FileSystems.getDefault().getPath(config.getDownloadEPMCDir());
+   
  }
  
  @Override
@@ -69,23 +83,15 @@ public class SubmitTask implements Runnable
   if(!appUrl.endsWith("/"))
    appUrl = appUrl + "/";
 
-  appUrl += Config.submitEndpoint;
+  if( op == Operation.create )
+   appUrl += Config.submitEndpoint;
+  else if( op == Operation.update )
+   appUrl += Config.updateEndpoint;
+  else if( op == Operation.replace )
+   appUrl += Config.replaceEndpoint;
   
   URL loginURL = null;
 
-  
-  try
-  {
-   loginURL = new URL(appUrl  + "?"+Config.SessionKey+"="+URLEncoder.encode(sess, "utf-8"));
-  }
-  catch(MalformedURLException e)
-  {
-   System.err.println("Invalid server URL: " + srvUrl);
-   System.exit(1);
-  }
-  catch(UnsupportedEncodingException e)
-  {
-  }
   
   String attachTo = config.getAttachTo();
   
@@ -119,6 +125,23 @@ public class SubmitTask implements Runnable
     }
    }
 
+   String logFileName = req.getFileName()+"-"+req.getOrder()+"of"+req.getTotal();
+   
+   try
+   {
+    loginURL = new URL(appUrl  + "?"+Config.SessionKey+"="+URLEncoder.encode(sess, "utf-8")+"&"+Config.SubmitRequestID+"="+
+      URLEncoder.encode(req.getFileName()+"-"+req.getFileOrder()+"of"+req.getFileTotal()+"-"+req.getOrder()+"of"+req.getTotal(), "utf-8"));
+   }
+   catch(MalformedURLException e)
+   {
+    System.err.println("Invalid server URL: " + srvUrl);
+    System.exit(1);
+   }
+   catch(UnsupportedEncodingException e)
+   {
+   }
+   
+   
    SubmissionInfo si = req.getSubmissionInfo();
    
    String acc = null;
@@ -132,11 +155,13 @@ public class SubmitTask implements Runnable
    if(acc == null)
     acc = si.getAccNoOriginal();
 
+   si.getSubmission().setAccNo(acc);
+   si.setAccNoOriginal(acc);
+
    
 //   if(acc != null && acc.startsWith("!"))
 //    acc = acc.substring(1);
 
-   String logFileName = req.getFileName()+"-"+req.getOrder()+"of"+req.getTotal();
    
    Path fileOutDir = outDir;
    
@@ -161,12 +186,55 @@ public class SubmitTask implements Runnable
    Path okFile = fileOutDir.resolve(logFileName + ".OK");
    Path failFile = fileOutDir.resolve(logFileName + ".FAIL");
 
-   if(Files.exists(okFile))
+   if( Files.exists(okFile) )
    {
     Console.println(taskName+": Sbm: "+req+" SKIP");
     continue;
    }
 
+   if( downloadDir != null && req.getSubmissionInfo().getAccNoPrefix() == null && req.getSubmissionInfo().getAccNoSuffix() == null 
+     && si.getFileOccurrences() != null && si.getFileOccurrences().size() > 0 )
+   {
+    boolean filesOK = true;
+    
+    for(FileOccurrence fo : si.getFileOccurrences() )
+    {
+     Path filePath = downloadDir.resolve( AccNoUtil.getPartitionedPath(acc) ).resolve(fo.getFileRef().getName());
+
+     if( ! config.getRefreshFiles() && Files.exists(filePath) )
+      continue;
+     
+     try
+     {
+      filesOK = loadFromWeb(acc, fo.getFileRef().getName(), filePath);
+      
+      if( ! filesOK )
+       break;
+     }
+     catch(IOException e)
+     {
+      e.printStackTrace();
+
+      filesOK = false;
+      break;
+     }
+    }
+    
+    if( ! filesOK )
+    {
+     try
+     {
+      downloadEPMCFiles(acc,downloadDir);
+     }
+     catch(IOException e)
+     {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+     }
+    }
+    
+   }
+   
    if(attachTo != null)
     si.getSubmission().addAttribute(Submission.attachToAttribute, attachTo);
 
@@ -193,8 +261,6 @@ public class SubmitTask implements Runnable
     continue;
    }
 
-   si.getSubmission().setAccNo(acc);
-   si.setAccNoOriginal(acc);
    
    if( ! config.isDontUseSecAccno() )
    {
@@ -320,6 +386,139 @@ public class SubmitTask implements Runnable
   }
  }
  
+ 
+ 
+ private boolean loadFromWeb(String accNo, String relPath, Path filePath) throws IOException
+ {
+  int n = accNo.lastIndexOf("PMC");
+  
+  String origAccNo = accNo.substring(n);
+
+  
+  URL url = null;
+  try
+  {
+   url = new URL("http://europepmc.org/articles/" + origAccNo + "/bin/" + relPath);
+  }
+  catch(MalformedURLException e1)
+  {
+   return false;
+  }
+
+  HttpURLConnection conn = null;
+
+  conn = (HttpURLConnection) url.openConnection();
+
+  InputStream nis = conn.getInputStream();
+
+  if( conn.getResponseCode() != HttpURLConnection.HTTP_OK )
+  {
+   nis.close();
+   conn.disconnect();
+   return false;
+  }
+  
+  long total = 0;
+  int rd;
+  
+  byte[] readBuffer = new byte[4*1024*1024];
+
+  Files.createDirectories( filePath.getParent() );
+
+  try (FileOutputStream fos = new FileOutputStream(filePath.toFile()))
+  {
+
+   while((rd = nis.read(readBuffer)) >= 0)
+   {
+    if(rd > 0)
+     fos.write(readBuffer, 0, rd);
+
+    total += rd;
+   }
+  }
+  catch(Exception e)
+  {
+   throw e;
+  }
+  finally
+  {
+   nis.close();
+
+   conn.disconnect();
+  }
+
+  return true;
+ }
+ 
+ private void downloadEPMCFiles(String accNo, Path dlDir) throws IOException
+ {
+  URL url = null;
+
+  int n = accNo.lastIndexOf("PMC");
+  
+  String origAccNo = accNo.substring(n);
+  
+  url = new URL(EPMCDownloadURLPrefix+origAccNo+EPMCDownloadURLSuffix);
+
+  HttpURLConnection conn = null;
+  
+  conn = (HttpURLConnection) url.openConnection();
+  
+  if( conn.getResponseCode() != HttpURLConnection.HTTP_OK )
+  {
+   conn.disconnect();
+   return;
+  }
+
+  ZipInputStream zis = new ZipInputStream(conn.getInputStream());
+  
+  ZipEntry ze = null;
+  
+  long total=0;
+  int rd;
+  byte[] readBuffer = new byte[4*1024*1024];
+
+  Path sbmPath = dlDir.resolve( AccNoUtil.getPartitionedPath(accNo) );
+  
+  while( (ze=zis.getNextEntry()) != null )
+  {
+   Path fPath = sbmPath.resolve(ze.getName());
+   
+   if( ze.isDirectory() )
+   {
+    Files.createDirectories(fPath);
+   }
+   else
+   {
+    Files.createDirectories( fPath.getParent() );
+    
+    try( FileOutputStream fos =  new FileOutputStream(fPath.toFile()) )
+    {
+     
+     while( (rd = zis.read(readBuffer) ) >= 0 )
+     {
+      if( rd > 0 )
+       fos.write(readBuffer,0,rd);
+      
+      total+=rd;
+     }
+    }
+    catch(Exception e)
+    {
+     zis.close();
+     throw e;
+    }
+    finally
+    {
+    }
+   }
+
+  }
+
+  zis.close();
+  conn.disconnect();
+ }
+
  private void printMappings(List<SubmissionMapping> mappings, PrintStream outs)
  {
   int i=0;

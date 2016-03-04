@@ -85,8 +85,8 @@ public class Main
   
   if( srcPath.isDirectory() )
   {
-   if( config.getFileTemplate() != null && config.getFileTemplate().length() > 0 )
-    fileList.addAll( Arrays.asList( srcPath.listFiles( (FilenameFilter)new WildcardFileFilter(config.getFileTemplate()) ) ) );
+   if( config.getFileNamePattern() != null && config.getFileNamePattern().length() > 0 )
+    fileList.addAll( Arrays.asList( srcPath.listFiles( (FilenameFilter)new WildcardFileFilter(config.getFileNamePattern()) ) ) );
    else
     fileList.addAll( Arrays.asList( srcPath.listFiles() ) );
   }

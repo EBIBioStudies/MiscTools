@@ -3,7 +3,10 @@ package uk.ac.ebi.biostd.tools.submitmass;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 
 import uk.ac.ebi.biostd.in.PMDoc;
@@ -22,14 +25,19 @@ public class FileProcessor implements Runnable
  private BlockingQueue<FileRequest> fileQueue;
  private BlockingQueue<SubmitRequest> submitQueue;
  private Path outDir;
+ private Map<String, SubmissionPointer> submissionMap;
+ private boolean rmDups;
+ private Config config;
  
- 
- public FileProcessor(String pName, BlockingQueue<FileRequest> fq, BlockingQueue<SubmitRequest> sq, Path outd )
+ public FileProcessor(String pName, BlockingQueue<FileRequest> fq, BlockingQueue<SubmitRequest> sq, Path outd, Map<String, SubmissionPointer> sbmMap, Config cfg )
  {
   procName = pName;
   fileQueue = fq;
   submitQueue = sq;
   outDir  = outd;
+  this.submissionMap=sbmMap;
+  rmDups = cfg.getRemoveDuplicates();
+  config = cfg;
  }
  
  @Override
@@ -78,6 +86,7 @@ public class FileProcessor implements Runnable
   ErrorCounter ec = new ErrorCounterImpl();
   SimpleLogNode topLn = new SimpleLogNode(Level.SUCCESS, "Parsing file: '" + file + "'", ec);
 
+  
   DataFormat fmt = null;
 
   String ext = null;
@@ -158,12 +167,69 @@ public class FileProcessor implements Runnable
   }
   
   
+  Path fileOutDir = outDir;
+  
+  if( config.isOutputDirPerFile() )
+  {
+   fileOutDir = outDir.resolve( fID );
+   
+   if( ! Files.exists(fileOutDir) )
+   {
+    try
+    {
+     Files.createDirectories(fileOutDir);
+    }
+    catch(IOException e)
+    {
+     e.printStackTrace();
+     return;
+    }
+   }
+  }
+  
+  
+  
   int i=0;
   int n = doc.getSubmissions().size();
   
+  Map<String,SubmissionPointer> dupMap=null;
+  
+  if( rmDups )
+  {
+   dupMap = new HashMap<String, SubmissionPointer>();
+   
+   for( SubmissionInfo si : doc.getSubmissions() )
+   {
+    i++;
+
+    if( si.getAccNoPrefix() == null && si.getAccNoSuffix() == null && si.getAccNoOriginal() != null )
+    {
+     SubmissionPointer ptr = dupMap.get(si.getAccNoOriginal());
+     
+     if( ptr == null )
+      dupMap.put(si.getAccNoOriginal(), new SubmissionPointer(null, i));
+     else
+      ptr.setOrder(i);
+    }
+   }
+  }
+  
+  i=0;
   for( SubmissionInfo si : doc.getSubmissions() )
   {
    i++;
+
+   String logFileName = fID+"-"+i+"of"+n;
+
+   Path okFile = fileOutDir.resolve(logFileName + ".OK");
+
+   if( Files.exists(okFile) )
+    continue;
+
+   Path obsoleteFile = fileOutDir.resolve(logFileName + ".OBSOLETE");
+ 
+   if(  Files.exists(obsoleteFile) )
+    continue;
 
    SubmitRequest sr = new SubmitRequest();
    
@@ -176,6 +242,58 @@ public class FileProcessor implements Runnable
    
    sr.setSubmissionInfo(si);
    
+   if( si.getAccNoPrefix() == null && si.getAccNoSuffix() == null && si.getAccNoOriginal() != null )
+   {
+    if( dupMap != null )
+    {
+     SubmissionPointer ptr = dupMap.get(si.getAccNoOriginal());
+     
+     if( ptr != null && ptr.getOrder() != i )
+     {
+      try
+      {
+       Files.createFile(obsoleteFile);
+      }
+      catch(IOException e)
+      {
+       e.printStackTrace();
+      }
+      
+      Console.println(procName+": Sbm: "+sr+" SKIP DUPLICATE");
+      
+      continue;
+     }
+    }
+    
+    if( submissionMap != null )
+    {
+     SubmissionPointer ptr = submissionMap.get(si.getAccNoOriginal());
+     
+     if( ptr == null )
+     {
+      Path umFile = fileOutDir.resolve(logFileName + ".UNMAPPED");
+     
+      touch(umFile);
+      
+      Console.println(procName+": Sbm: "+sr+" SKIP UNMAPPED");
+
+      continue;
+     }
+     
+     if(  i != ptr.getOrder() || ! fID.equals(ptr.getFileName()) )
+     {
+      touch(obsoleteFile);
+      
+      Console.println(procName+": Sbm: "+sr+" SKIP OBSOLETE");
+
+      continue;
+     }     
+    }
+    
+   }
+   
+
+   
    while( true )
    {
     try
@@ -187,6 +305,18 @@ public class FileProcessor implements Runnable
     {
     }
    }
+  }
+ }
+ 
+ private void touch( Path file )
+ {
+  try
+  {
+   Files.createFile(file);
+  }
+  catch(IOException e)
+  {
+   e.printStackTrace();
   }
  }
  

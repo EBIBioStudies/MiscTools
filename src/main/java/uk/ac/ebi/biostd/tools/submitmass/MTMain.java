@@ -17,12 +17,16 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 import org.apache.commons.io.filefilter.WildcardFileFilter;
 
@@ -65,14 +69,32 @@ public class MTMain
    System.exit(1);
   }
 
+  Operation op = null;
+  
+  for( Operation o : Operation.values() )
+  {
+   if( o.name().equals(config.getOpeartion()) )
+   {
+    op = o;
+    break;
+   }
+  }
+  
+  if( op == null )
+  {
+   System.err.println("Invalid operation: "+config.getOpeartion()+" Possible values: "+Arrays.asList(Operation.values()) );
+   usage();
+   System.exit(1);
+  }
+  
   File srcPath = new File( config.getFiles().get(0) );
 
   Collection<File> fileList = new ArrayList<File>();
   
   if( srcPath.isDirectory() )
   {
-   if( config.getFileTemplate() != null && config.getFileTemplate().length() > 0 )
-    fileList.addAll( Arrays.asList( srcPath.listFiles( (FilenameFilter)new WildcardFileFilter(config.getFileTemplate()) ) ) );
+   if( config.getFileNamePattern() != null && config.getFileNamePattern().length() > 0 )
+    fileList.addAll( Arrays.asList( srcPath.listFiles( (FilenameFilter)new WildcardFileFilter(config.getFileNamePattern()) ) ) );
    else
     fileList.addAll( Arrays.asList( srcPath.listFiles() ) );
   }
@@ -104,6 +126,63 @@ public class MTMain
     fiter.remove();
   }
     
+  
+  final Map<String, SubmissionPointer> sbmMap;
+  
+  if( config.getMapFile() != null && config.getMapFile().length() > 0  )
+  {
+   sbmMap = Collections.synchronizedMap(new HashMap<String, SubmissionPointer>());
+
+   Path mpp = FileSystems.getDefault().getPath(config.getMapFile());
+   
+   if( ! Files.exists(mpp) )
+   {
+    System.out.println("Can't open submission mapping file: "+mpp);
+    return;
+   }
+   
+   try
+   {
+    Files.lines(mpp).forEach( new Consumer<String>()
+    {
+     @Override
+     public void accept(String t)
+     {
+      String[] parts = t.split("\t");
+      
+      if( parts.length != 3 )
+      {
+       System.out.println("Invalid submission map file. Line: "+t);
+       System.exit(1);
+      }
+      
+      int ord = -1;
+      
+      try
+      {
+       ord = Integer.parseInt(parts[2]);
+      }
+      catch(Exception e)
+      {
+       System.out.println("Invalid submission map file. Line: "+t);
+       System.exit(1);
+      }
+      
+      sbmMap.put(parts[0], new SubmissionPointer(parts[1],ord) );
+     }
+    });
+   }
+   catch(IOException e)
+   {
+    System.out.println("IO error while reading submission mapping file");
+    System.exit(1);
+   }
+   
+  }
+  else
+   sbmMap = null;
+
+  
   String sessId = login(config);
 
   int nFileProc = config.getParallelFiles();
@@ -120,7 +199,7 @@ public class MTMain
   
   for( int i=1; i <= nSbmProc; i++ )
   {
-   SubmitTask st = new SubmitTask("STsk"+i, sbmQueue, config, outDir, sessId);
+   SubmitTask st = new SubmitTask("STsk"+i, sbmQueue, config, outDir, op, sessId);
    
    sbmExec.submit(st);
   }
@@ -130,7 +209,7 @@ public class MTMain
   
   for( int i=1; i <= nFileProc; i++ )
   {
-   FileProcessor fp = new FileProcessor("FProc"+i, fileQueue, sbmQueue, outDir);
+   FileProcessor fp = new FileProcessor("FProc"+i, fileQueue, sbmQueue, outDir, sbmMap, config);
    
    fileExec.submit(fp);
   }

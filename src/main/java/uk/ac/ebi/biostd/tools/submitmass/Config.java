@@ -8,6 +8,7 @@ import com.lexicalscope.jewel.cli.Unparsed;
 public interface Config
 {
  static final String SessionKey = "BIOSTDSESS";
+ static final String SubmitRequestID = "requestId";
  
  public static final String authEndpoint = "auth/signin";
  public static final String submitEndpoint = "submit/create";
@@ -15,6 +16,7 @@ public interface Config
  public static final String replaceEndpoint = "submit/replace";
  public static final String deleteEndpoint = "submit/delete";
  
+
   @Unparsed
   public List<String> getFiles();
 
@@ -36,7 +38,7 @@ public interface Config
   boolean getHelp();
   
   @Option(shortName="t", defaultValue="")
-  String getFileTemplate();
+  String getFileNamePattern();
   
   @Option(shortName="f")
   boolean isForcePublic();
@@ -59,4 +61,18 @@ public interface Config
   @Option(shortName="d")
   public boolean isOutputDirPerFile();
 
+  @Option(shortName="q", defaultValue="create")
+  public String getOpeartion();
+  
+  @Option(shortName="m", defaultValue="")
+  public String getMapFile();
+  
+  @Option(shortName="w", defaultValue="")
+  public String getDownloadEPMCDir();
+
+  @Option(shortName="l")
+  public boolean getRefreshFiles();
+  
+  @Option(shortName="c")
+  public boolean getRemoveDuplicates();
 }

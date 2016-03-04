@@ -20,11 +20,10 @@
 		<property name="manifest" location="MANIFEST.MF"/>
 		<property name="jarname" value="BioStdTools.jar"/>
 		
-		
 		<maven:dependencies filesetId="deps">
 		  	<maven:dependency groupId="com.lexicalscope.jewelcli" artifactId="jewelcli" version="[0.8.9,)" />
+		  	<maven:dependency groupId="commons-io" artifactId="commons-io" version="[2.4,)" />
 		  	<maven:dependency groupId="uk.ac.ebi.biostd" artifactId="BioStdCoreModel" version="[0,)" >
-		  		<maven:exclusion groupId="*" artifactId="*" />
 		  	</maven:dependency>
 		</maven:dependencies>
 
