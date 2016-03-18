@@ -435,6 +435,8 @@ public class SubmitTask implements Runnable
 
     total += rd;
    }
+   
+   System.out.println("File downloaded: "+relPath+" -> "+filePath);
   }
   catch(Exception e)
   {

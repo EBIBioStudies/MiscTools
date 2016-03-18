@@ -7,10 +7,10 @@ import org.odftoolkit.simple.SpreadsheetDocument;
 import uk.ac.ebi.biostd.db.TagResolver;
 import uk.ac.ebi.biostd.in.PMDoc;
 import uk.ac.ebi.biostd.in.ParserConfig;
-import uk.ac.ebi.biostd.in.pagetab.ODSpreadsheetReader;
 import uk.ac.ebi.biostd.in.pagetab.PageTabSyntaxParser;
-import uk.ac.ebi.biostd.in.pagetab.SpreadsheetReader;
 import uk.ac.ebi.biostd.treelog.LogNode;
+import uk.ac.ebi.mg.spreadsheet.SpreadsheetReader;
+import uk.ac.ebi.mg.spreadsheet.readers.ODSpreadsheetReader;
 
 public class ODSParse
 {

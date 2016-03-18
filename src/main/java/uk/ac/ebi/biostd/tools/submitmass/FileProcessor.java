@@ -259,7 +259,7 @@ public class FileProcessor implements Runnable
        e.printStackTrace();
       }
       
-      Console.println(procName+": Sbm: "+sr+" SKIP DUPLICATE");
+      Console.println(procName+": Sbm: "+sr+" "+si.getAccNoOriginal()+" SKIP DUPLICATE of "+ptr);
       
       continue;
      }
@@ -284,7 +284,7 @@ public class FileProcessor implements Runnable
      {
       touch(obsoleteFile);
       
-      Console.println(procName+": Sbm: "+sr+" SKIP OBSOLETE");
+      Console.println(procName+": Sbm: "+sr+" "+si.getAccNoOriginal()+" SKIP OBSOLETE by "+ptr);
 
       continue;
      }     
