@@ -192,6 +192,14 @@ public class FileProcessor implements Runnable
   int i=0;
   int n = doc.getSubmissions().size();
   
+  if(config.getFixCharset())
+  {
+   for( SubmissionInfo si : doc.getSubmissions() )
+   {
+    CharsetFix.fixSubmissionCharset(si);
+   }
+  }
+  
   Map<String,SubmissionPointer> dupMap=null;
   
   if( rmDups )
@@ -307,6 +315,7 @@ public class FileProcessor implements Runnable
    }
   }
  }
+ 
  
  private void touch( Path file )
  {

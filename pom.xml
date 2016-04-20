@@ -44,4 +44,15 @@
 
 
 	</dependencies>
+	
+	<repositories>
+
+		<repository>
+			<id>fg-artif</id>
+			<name>FG atrifactory</name>
+			<url>http://coconut.ebi.ac.uk:8081/artifactory/local-repo</url>
+		</repository>
+		
+	</repositories>
+		
 </project>

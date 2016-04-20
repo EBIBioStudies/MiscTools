@@ -75,4 +75,7 @@ public interface Config
   
   @Option(shortName="c")
   public boolean getRemoveDuplicates();
+  
+  @Option(shortName="x")
+  public boolean getFixCharset();
 }

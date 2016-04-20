@@ -21,18 +21,23 @@
 		<property name="jarname" value="BioStdTools.jar"/>
 		
 		<maven:dependencies filesetId="deps">
+			<maven:pom id="maven.pom" file="pom.xml" />
+		</maven:dependencies>
+
+		<!--
+		<maven:dependencies filesetId="deps">
 		  	<maven:dependency groupId="com.lexicalscope.jewelcli" artifactId="jewelcli" version="[0.8.9,)" />
 		  	<maven:dependency groupId="commons-io" artifactId="commons-io" version="[2.4,)" />
 		  	<maven:dependency groupId="uk.ac.ebi.biostd" artifactId="BioStdCoreModel" version="[0,)" >
 		  	</maven:dependency>
 		</maven:dependencies>
-
+        -->
 
 		<path id="master-classpath">
 			<fileset refid="deps"></fileset>
 	    </path>
 		
-		<javac  destdir="${build}" classpathref="master-classpath" source="1.8" target="1.8" debug="on" nowarn="on" includeAntRuntime="false">
+		<javac encoding="utf-8" destdir="${build}" classpathref="master-classpath" source="1.8" target="1.8" debug="on" nowarn="on" includeAntRuntime="false">
 			<src path="src/main/java"/>
 			<compilerarg value="-Xlint:deprecation"/>
 		</javac>

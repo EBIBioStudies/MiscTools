@@ -211,6 +211,13 @@ public class SubmitTask implements Runnable
       if( ! filesOK )
        break;
      }
+     catch(FileNotFoundException e)
+     {
+      Console.println(taskName+": Sbm: "+req+" loadFromWeb not found: "+e.getMessage());
+
+      filesOK = false;
+      break;
+     }
      catch(IOException e)
      {
       e.printStackTrace();
@@ -423,9 +430,13 @@ public class SubmitTask implements Runnable
   
   byte[] readBuffer = new byte[4*1024*1024];
 
-  Files.createDirectories( filePath.getParent() );
+  Path dirPath = filePath.getParent();
+  
+  Files.createDirectories( dirPath );
 
-  try (FileOutputStream fos = new FileOutputStream(filePath.toFile()))
+  Path tmpFile = dirPath.resolve( filePath.getFileName().toString()+".tmp~" );
+  
+  try (FileOutputStream fos = new FileOutputStream(tmpFile.toFile()))
   {
 
    while((rd = nis.read(readBuffer)) >= 0)
@@ -436,7 +447,6 @@ public class SubmitTask implements Runnable
     total += rd;
    }
    
-   System.out.println("File downloaded: "+relPath+" -> "+filePath);
   }
   catch(Exception e)
   {
@@ -448,6 +458,10 @@ public class SubmitTask implements Runnable
 
    conn.disconnect();
   }
+  
+  Files.move(tmpFile, filePath);
+  System.out.println("File downloaded: "+relPath+" -> "+filePath);
+
 
   return true;
  }
@@ -519,6 +533,9 @@ public class SubmitTask implements Runnable
 
   zis.close();
   conn.disconnect();
+  
+  System.out.println("Archive downloaded: "+url);
+
  }
 
  private void printMappings(List<SubmissionMapping> mappings, PrintStream outs)

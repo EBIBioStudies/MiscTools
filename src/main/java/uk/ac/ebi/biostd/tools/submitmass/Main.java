@@ -117,7 +117,7 @@ public class Main
   {
    fcnt++;
    
-   System.out.println("Processing file: "+f.getName()+" ("+fcnt+" of "+fileList.size()+")");
+//   System.out.println("Processing file: "+f.getName()+" ("+fcnt+" of "+fileList.size()+")");
    
    if( ! f.isDirectory() )
     processFile(f, outDir, sessId,config);
@@ -141,8 +141,13 @@ public class Main
    return;
   }
   
-  System.out.println("Read "+doc.getSubmissions().size()+" submission");
+//  System.out.println("Read "+doc.getSubmissions().size()+" submission");
 
+  if( config.getFixCharset() )
+  {
+   for(SubmissionInfo si : doc.getSubmissions() )
+    CharsetFix.fixSubmissionCharset(si);
+  }
   
   SimpleLogNode.setLevels(topLn);
   
