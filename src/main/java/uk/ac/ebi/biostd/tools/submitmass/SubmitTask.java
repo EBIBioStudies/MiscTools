@@ -89,6 +89,8 @@ public class SubmitTask implements Runnable
    appUrl += Config.updateEndpoint;
   else if( op == Operation.replace )
    appUrl += Config.replaceEndpoint;
+  else if( op == Operation.override )
+   appUrl += Config.overrideEndpoint;
   
   URL loginURL = null;
 
@@ -544,6 +546,8 @@ public class SubmitTask implements Runnable
   
   for( SubmissionMapping sm : mappings )
   {
+   i++;
+   
    outs.append("\n------- Submission "+i+"/"+mappings.size()+" ---------\n");
    
    outs.append("Submission: ").append(sm.getSubmissionMapping().getOrigAcc()).append(" -> ").append(sm.getSubmissionMapping().getAssignedAcc()).append("\n");

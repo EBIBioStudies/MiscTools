@@ -14,6 +14,7 @@ public interface Config
  public static final String submitEndpoint = "submit/create";
  public static final String updateEndpoint = "submit/update";
  public static final String replaceEndpoint = "submit/replace";
+ public static final String overrideEndpoint = "submit/override";
  public static final String deleteEndpoint = "submit/delete";
  
 

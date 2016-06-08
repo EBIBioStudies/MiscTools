@@ -4,5 +4,6 @@ public enum Operation
 {
  create,
  update,
- replace
+ replace,
+ override
 }
