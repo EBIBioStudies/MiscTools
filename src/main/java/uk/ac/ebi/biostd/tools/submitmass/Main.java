@@ -429,7 +429,7 @@ public class Main
   if(!appUrl.endsWith("/"))
    appUrl = appUrl + "/";
 
-  appUrl += Config.submitEndpoint;
+  appUrl += "submit/create";
   
   URL loginURL = null;
 

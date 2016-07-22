@@ -10,6 +10,7 @@ import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
+import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
@@ -83,14 +84,7 @@ public class SubmitTask implements Runnable
   if(!appUrl.endsWith("/"))
    appUrl = appUrl + "/";
 
-  if( op == Operation.create )
-   appUrl += Config.submitEndpoint;
-  else if( op == Operation.update )
-   appUrl += Config.updateEndpoint;
-  else if( op == Operation.replace )
-   appUrl += Config.replaceEndpoint;
-  else if( op == Operation.override )
-   appUrl += Config.overrideEndpoint;
+  appUrl += "submit/"+op.name();
   
   URL loginURL = null;
 
@@ -203,8 +197,23 @@ public class SubmitTask implements Runnable
     {
      Path filePath = downloadDir.resolve( AccNoUtil.getPartitionedPath(acc) ).resolve(fo.getFileRef().getName());
 
-     if( ! config.getRefreshFiles() && Files.exists(filePath) )
+     boolean exst = Files.exists(filePath);
+     
+     if( ! config.getRefreshFiles() && exst )
       continue;
+     
+     if(exst)
+     {
+      try
+      {
+       Files.delete(filePath);
+      }
+      catch(IOException e1)
+      {
+       Console.println(taskName+": Sbm: "+req+" can't delete file: "+filePath);
+       e1.printStackTrace();
+      }
+     }
      
      try
      {
@@ -417,7 +426,10 @@ public class SubmitTask implements Runnable
   HttpURLConnection conn = null;
 
   conn = (HttpURLConnection) url.openConnection();
-
+  
+  conn.setConnectTimeout(10000);
+  conn.setReadTimeout(10000);
+  
   InputStream nis = conn.getInputStream();
 
   if( conn.getResponseCode() != HttpURLConnection.HTTP_OK )
@@ -481,6 +493,9 @@ public class SubmitTask implements Runnable
   HttpURLConnection conn = null;
   
   conn = (HttpURLConnection) url.openConnection();
+
+  conn.setConnectTimeout(10000);
+  conn.setReadTimeout(10000);
   
   if( conn.getResponseCode() != HttpURLConnection.HTTP_OK )
   {
@@ -488,6 +503,7 @@ public class SubmitTask implements Runnable
    return;
   }
 
+  
   ZipInputStream zis = new ZipInputStream(conn.getInputStream());
   
   ZipEntry ze = null;
@@ -570,6 +586,7 @@ public class SubmitTask implements Runnable
    
    conn.setDoOutput(true);
    conn.setRequestMethod("POST");
+   conn.setReadTimeout(30000);
    
    conn.setRequestProperty("Content-Type", fmt.getContentType()+"; charset=utf-8");
    
@@ -596,6 +613,10 @@ public class SubmitTask implements Runnable
    }
    
    
+  }
+  catch(SocketTimeoutException toe )
+  {
+   throw new SubmitException("Server doesn't respond",toe);
   }
   catch(IOException e)
   {

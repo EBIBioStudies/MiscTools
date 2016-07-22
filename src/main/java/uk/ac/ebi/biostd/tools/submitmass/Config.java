@@ -11,11 +11,12 @@ public interface Config
  static final String SubmitRequestID = "requestId";
  
  public static final String authEndpoint = "auth/signin";
- public static final String submitEndpoint = "submit/create";
- public static final String updateEndpoint = "submit/update";
- public static final String replaceEndpoint = "submit/replace";
- public static final String overrideEndpoint = "submit/override";
- public static final String deleteEndpoint = "submit/delete";
+
+// public static final String createEndpoint = "submit/create";
+// public static final String updateEndpoint = "submit/update";
+// public static final String replaceEndpoint = "submit/replace";
+// public static final String overrideEndpoint = "submit/override";
+// public static final String deleteEndpoint = "submit/delete";
  
 
   @Unparsed
@@ -76,7 +77,10 @@ public interface Config
   
   @Option(shortName="c")
   public boolean getRemoveDuplicates();
-  
+ 
+  @Option(defaultValue="0")
+  public String getMaturationTimeHours();
+ 
   @Option(shortName="x")
   public boolean getFixCharset();
 }

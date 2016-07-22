@@ -101,6 +101,42 @@ public class MTMain
   else
    fileList.add(srcPath);
   
+  if( ! config.getMaturationTimeHours().equals("0") )
+  {
+   long mttime = -1;
+   
+   try
+   {
+    mttime = Integer.parseInt(config.getMaturationTimeHours());
+   }
+   catch( Throwable t )
+   {
+   }
+   
+   if( mttime <= 0 )
+   {
+    System.err.println("Invalid maturation time: "+config.getMaturationTimeHours() );
+    System.exit(1);
+   }
+   
+   mttime = System.currentTimeMillis()-mttime*60*60*1000L;
+   
+   Iterator<File> flIter = fileList.iterator();
+   
+   while( flIter.hasNext() )
+   {
+    File f = flIter.next();
+    
+    if( f.lastModified() > mttime )
+    {
+     flIter.remove();
+     System.out.println("Skipping immature file: "+f);
+    }
+   }
+   
+  }
+  
+  
   Path outDir = FileSystems.getDefault().getPath(config.getFiles().get(1) );
   
   if( ! Files.isDirectory( outDir) )

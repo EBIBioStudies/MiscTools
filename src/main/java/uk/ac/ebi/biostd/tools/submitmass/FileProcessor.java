@@ -64,7 +64,9 @@ public class FileProcessor implements Runnable
      try
      {
       fileQueue.put(fr);
-      return;
+      
+      if( fileQueue.size() <= 1 )
+       return;
      }
      catch(InterruptedException e)
      {
