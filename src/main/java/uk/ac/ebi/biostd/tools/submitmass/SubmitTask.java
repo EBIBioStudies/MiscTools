@@ -125,8 +125,20 @@ public class SubmitTask implements Runnable
    
    try
    {
-    loginURL = new URL(appUrl  + "?"+Config.SessionKey+"="+URLEncoder.encode(sess, "utf-8")+"&"+Config.SubmitRequestID+"="+
-      URLEncoder.encode(req.getFileName()+"-"+req.getFileOrder()+"of"+req.getFileTotal()+"-"+req.getOrder()+"of"+req.getTotal(), "utf-8"));
+    StringBuilder sb = new StringBuilder();
+    
+    sb.append(appUrl).append('?').append(Config.SessionKey).append('=').append(URLEncoder.encode(sess, "utf-8"));
+    sb.append('&').append(Config.SubmitRequestID).append('=').append(URLEncoder.encode(req.getFileName()+"-"+req.getFileOrder()+"of"+req.getFileTotal()+"-"+req.getOrder()+"of"+req.getTotal(), "utf-8"));
+    
+    String obUser = config.getOnBehalf();
+    
+    if( obUser != null && obUser.trim().length() == 0)
+     obUser = null;
+    
+    if( obUser != null )
+     sb.append('&').append(Config.SubmitOnBehalf).append('=').append(URLEncoder.encode(obUser, "utf-8"));
+    
+    loginURL = new URL(sb.toString());
    }
    catch(MalformedURLException e)
    {
@@ -254,7 +266,7 @@ public class SubmitTask implements Runnable
    }
    
    if(attachTo != null)
-    si.getSubmission().addAttribute(Submission.attachToAttribute, attachTo);
+    si.getSubmission().addAttribute(Submission.canonicAttachToAttribute, attachTo);
 
    try
    {
@@ -587,6 +599,7 @@ public class SubmitTask implements Runnable
    conn.setDoOutput(true);
    conn.setRequestMethod("POST");
    conn.setReadTimeout(30000);
+   conn.setConnectTimeout(30000);
    
    conn.setRequestProperty("Content-Type", fmt.getContentType()+"; charset=utf-8");
    

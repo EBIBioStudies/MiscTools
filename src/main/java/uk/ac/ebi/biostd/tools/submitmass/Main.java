@@ -200,7 +200,7 @@ public class Main
    }
    
    if( config.getAttachTo() != null && config.getAttachTo().trim().length() > 0 )
-    si.getSubmission().addAttribute(Submission.attachToAttribute, config.getAttachTo().trim());
+    si.getSubmission().addAttribute(Submission.canonicAttachToAttribute, config.getAttachTo().trim());
    
    try
    {

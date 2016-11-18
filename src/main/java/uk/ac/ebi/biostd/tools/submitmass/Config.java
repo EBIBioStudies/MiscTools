@@ -9,7 +9,8 @@ public interface Config
 {
  static final String SessionKey = "BIOSTDSESS";
  static final String SubmitRequestID = "requestId";
- 
+ static final String SubmitOnBehalf =  "onBehalf";
+
  public static final String authEndpoint = "auth/signin";
 
 // public static final String createEndpoint = "submit/create";
@@ -83,4 +84,7 @@ public interface Config
  
   @Option(shortName="x")
   public boolean getFixCharset();
+  
+  @Option(shortName="b", defaultValue="")
+  public String getOnBehalf();
 }
