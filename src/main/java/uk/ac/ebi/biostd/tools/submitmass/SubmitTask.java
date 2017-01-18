@@ -86,7 +86,7 @@ public class SubmitTask implements Runnable
 
   appUrl += "submit/"+op.name();
   
-  URL loginURL = null;
+  URL submitURL = null;
 
   
   String attachTo = config.getAttachTo();
@@ -138,7 +138,13 @@ public class SubmitTask implements Runnable
     if( obUser != null )
      sb.append('&').append(Config.SubmitOnBehalf).append('=').append(URLEncoder.encode(obUser, "utf-8"));
     
-    loginURL = new URL(sb.toString());
+    if( config.getValidateOnly() )
+     sb.append('&').append(Config.ValidateOnly).append("=true");
+    
+    if( config.getIgnoreAbsentFiles() )
+     sb.append('&').append(Config.IgnoreAbsentFiles).append("=true");
+    
+    submitURL = new URL(sb.toString());
    }
    catch(MalformedURLException e)
    {
@@ -345,7 +351,7 @@ public class SubmitTask implements Runnable
    SubmissionReport rep;
    try
    {
-    rep = submit(sb.toString(), DataFormat.json, loginURL);
+    rep = submit(sb.toString(), DataFormat.json, submitURL);
    }
    catch(SubmitException e1)
    {

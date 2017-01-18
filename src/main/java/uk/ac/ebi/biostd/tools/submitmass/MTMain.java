@@ -26,6 +26,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 import org.apache.commons.io.filefilter.WildcardFileFilter;
@@ -243,9 +244,14 @@ public class MTMain
   
   ExecutorService fileExec = Executors.newFixedThreadPool(nFileProc);
   
+  AtomicInteger count = null;
+  
+  if( config.getLimit() > 0 )
+   count = new AtomicInteger();
+  
   for( int i=1; i <= nFileProc; i++ )
   {
-   FileProcessor fp = new FileProcessor("FProc"+i, fileQueue, sbmQueue, outDir, sbmMap, config);
+   FileProcessor fp = new FileProcessor("FProc"+i, fileQueue, sbmQueue, count, outDir, sbmMap, config);
    
    fileExec.submit(fp);
   }
@@ -253,6 +259,9 @@ public class MTMain
   int i=0;
   for( File file :  fileList )
   {
+   if( count != null && count.get() >= config.getLimit() )
+    break;
+    
    i++;
    
    FileRequest freq = new FileRequest();
@@ -333,7 +342,29 @@ public class MTMain
  
  private static void usage()
  {
-  System.err.println("Invalid usage");
+  System.err.println("java -cp BioStdTools.jar uk.ac.ebi.biostd.tools.submitmass.MTMain -q <operation> -s serverURL -u user -p [password] [options] <input file|input dir> <log dir>");
+  System.err.println("-s or --server server endpoint URL");
+  System.err.println("-u or --user user login");
+  System.err.println("-p or --password user password");
+  System.err.println("-n or --limit load by the first N submissions only");
+  System.err.println("-t or --fileNamePattern process only files that match a pattern. Example: -t '*.cvs'");
+  System.err.println("-f or --forcePublic make all submissions public regardless of presence of the 'Public' tag in source files");
+  System.err.println("-a or --attachTo force all submission be attached to the specified submission. Normally 'AttachTo' attribute should be used for this purpose");
+  System.err.println("-i or --parallelFiles defines a number of input files to be processed in parallel");
+  System.err.println("-o or --parallelSubmitters defines a number of submission tasks that will be run in parallel");
+  System.err.println("-r or --setPartitionedRootPath force a submission root path by partitioning accession number");
+  System.err.println("-e or --dontUseSecAccno remove root section accno. The submission accno will be used instead");
+  System.err.println("-d or --outputDirPerFile create a separate log dir for each input file. Useful when input files contain multiple submissions");
+  System.err.println("-q or --operation set a query operation. One of:  create, createupdate, update, override, createoverride");
+  System.err.println("-m or --mapFile use mapping file created by the mapping tool to avoid resubmitting the same submissions");
+  System.err.println("-w or --downloadEPMCDir download EPMC attachment file into the specified directory");
+  System.err.println("-l or --refreshFiles download EPMC files even if they are exist");
+  System.err.println("-c or --removeDuplicates submit only the last submission if the same accession repeats in a source file");
+  System.err.println("      --maturationTimeHours ignore files that are not older than a specified interval");
+  System.err.println("-x or --fixCharset try to fix some charset problems (like double conversion)");
+  System.err.println("-b or --onBehalf make submission on behalf of other user. Only superuser can do this");
+  System.err.println("-v or --validateOnly simulate submission process with no DB changed");
+  System.err.println("      --ignoreAbsentFiles allow submissions with unresolved file references");
  }
  
  

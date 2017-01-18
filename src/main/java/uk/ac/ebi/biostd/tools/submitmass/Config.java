@@ -10,6 +10,8 @@ public interface Config
  static final String SessionKey = "BIOSTDSESS";
  static final String SubmitRequestID = "requestId";
  static final String SubmitOnBehalf =  "onBehalf";
+ static final String ValidateOnly =  "validateOnly";
+ static final String IgnoreAbsentFiles =  "ignoreAbsentFiles";
 
  public static final String authEndpoint = "auth/signin";
 
@@ -84,6 +86,12 @@ public interface Config
  
   @Option(shortName="x")
   public boolean getFixCharset();
+  
+  @Option(shortName="v")
+  public boolean getValidateOnly();
+
+  @Option
+  public boolean getIgnoreAbsentFiles();
   
   @Option(shortName="b", defaultValue="")
   public String getOnBehalf();

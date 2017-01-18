@@ -8,6 +8,7 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import uk.ac.ebi.biostd.in.PMDoc;
 import uk.ac.ebi.biostd.in.pagetab.SubmissionInfo;
@@ -28,8 +29,9 @@ public class FileProcessor implements Runnable
  private Map<String, SubmissionPointer> submissionMap;
  private boolean rmDups;
  private Config config;
+ private AtomicInteger count;
  
- public FileProcessor(String pName, BlockingQueue<FileRequest> fq, BlockingQueue<SubmitRequest> sq, Path outd, Map<String, SubmissionPointer> sbmMap, Config cfg )
+ public FileProcessor(String pName, BlockingQueue<FileRequest> fq, BlockingQueue<SubmitRequest> sq, AtomicInteger cnt, Path outd, Map<String, SubmissionPointer> sbmMap, Config cfg )
  {
   procName = pName;
   fileQueue = fq;
@@ -38,6 +40,8 @@ public class FileProcessor implements Runnable
   this.submissionMap=sbmMap;
   rmDups = cfg.getRemoveDuplicates();
   config = cfg;
+  
+  count = cnt;
  }
  
  @Override
@@ -74,14 +78,15 @@ public class FileProcessor implements Runnable
     }
    }
    
-   processFile(fr);
+   if( ! processFile(fr) )
+    return;
    
   }
   
  }
  
  
- private void processFile( FileRequest fReq )
+ private boolean processFile( FileRequest fReq )
  {
   File file = fReq.getFile();
   
@@ -142,7 +147,7 @@ public class FileProcessor implements Runnable
     e.printStackTrace();
    }
    
-   return;
+   return true;
   }
  
   String fID = file.getName();
@@ -165,7 +170,7 @@ public class FileProcessor implements Runnable
     e.printStackTrace();
    }
    
-   return;
+   return true;
   }
   
   
@@ -184,7 +189,7 @@ public class FileProcessor implements Runnable
     catch(IOException e)
     {
      e.printStackTrace();
-     return;
+     return false;
     }
    }
   }
@@ -228,7 +233,15 @@ public class FileProcessor implements Runnable
   for( SubmissionInfo si : doc.getSubmissions() )
   {
    i++;
-
+   
+   if( count != null )
+   {
+    int cnt = count.incrementAndGet();
+    
+    if( config.getLimit() > 0 && cnt > config.getLimit() )
+     return false;
+   }
+   
    String logFileName = fID+"-"+i+"of"+n;
 
    Path okFile = fileOutDir.resolve(logFileName + ".OK");
@@ -316,6 +329,8 @@ public class FileProcessor implements Runnable
     }
    }
   }
+  
+  return true;
  }
  
  
