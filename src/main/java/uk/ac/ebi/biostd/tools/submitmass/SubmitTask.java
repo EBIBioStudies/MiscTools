@@ -332,7 +332,7 @@ public class SubmitTask implements Runnable
    //  si.getSubmission().setRootPath(acc.substring(acc.indexOf("-")+1));
 
    StringBuilder sb = new StringBuilder();
-   DocumentFormatter outfmt = new JSONFormatter(sb);
+   DocumentFormatter outfmt = new JSONFormatter(sb, true);
 
    PMDoc cdoc = new PMDoc();
 

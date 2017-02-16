@@ -14,6 +14,8 @@ public interface Config
  static final String IgnoreAbsentFiles =  "ignoreAbsentFiles";
 
  public static final String authEndpoint = "auth/signin";
+ public static final String exportLockEndpoint = "export/lock";
+ public static final String exportUnlockEndpoint = "export/unlock";
 
 // public static final String createEndpoint = "submit/create";
 // public static final String updateEndpoint = "submit/update";
@@ -95,4 +97,7 @@ public interface Config
   
   @Option(shortName="b", defaultValue="")
   public String getOnBehalf();
+  
+  @Option(defaultValue="")
+  public String getLockerName();
 }

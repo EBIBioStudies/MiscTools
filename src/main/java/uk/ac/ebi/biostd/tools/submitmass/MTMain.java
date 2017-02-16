@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
@@ -42,6 +43,8 @@ public class MTMain
 {
  public static final int FILE_TERM_TIMEOUT_SEC=60*60*24;
  public static final int SUBM_TERM_TIMEOUT_SEC=60*60;
+
+ public static final long lockInterval = 5*60*1000;
  
  public static void main(String[] args)
  {
@@ -219,6 +222,12 @@ public class MTMain
   else
    sbmMap = null;
 
+  String lockerName = config.getLockerName();
+  
+  if( lockerName.length() == 0 )
+   lockerName = UUID.randomUUID().toString();
+  
+  long lastLockTime = 0;
   
   String sessId = login(config);
 
@@ -263,6 +272,12 @@ public class MTMain
     break;
     
    i++;
+   
+   if( (System.currentTimeMillis() - lastLockTime ) > lockInterval )
+   {
+    lastLockTime = System.currentTimeMillis();
+    lockExport(config, lockerName, true);
+   }
    
    FileRequest freq = new FileRequest();
    
@@ -318,6 +333,8 @@ public class MTMain
    }
   }
   
+  lockExport(config, lockerName, false);
+  
   if( timeout <=0 )
    System.out.println("Submission thread pool termination failed");
   else
@@ -365,10 +382,51 @@ public class MTMain
   System.err.println("-b or --onBehalf make submission on behalf of other user. Only superuser can do this");
   System.err.println("-v or --validateOnly simulate submission process with no DB changed");
   System.err.println("      --ignoreAbsentFiles allow submissions with unresolved file references");
+  System.err.println("      --lockerName unique name for backend export locking");
  }
  
- 
- 
+ private static void lockExport( Config config, String lckName, boolean lock )
+ {
+  String appUrl = config.getServer();
+
+  if(!appUrl.endsWith("/"))
+   appUrl = appUrl + "/";
+  
+  URL loginURL = null;
+
+  String lckEndpoint = lock?Config.exportLockEndpoint:Config.exportUnlockEndpoint;
+  
+  try
+  {
+   loginURL = new URL(appUrl + lckEndpoint + "?locker=" + URLEncoder.encode(lckName, "utf-8") );
+  }
+  catch(MalformedURLException e)
+  {
+   System.err.println("Invalid server URL: " + config.getServer());
+   System.exit(1);
+  }
+  catch(UnsupportedEncodingException e)
+  {
+  }
+
+  try
+  {
+   HttpURLConnection conn = (HttpURLConnection) loginURL.openConnection();
+   String resp = StringUtils.readFully((InputStream)conn.getContent(), Charset.forName("utf-8"));
+
+   conn.disconnect();
+
+   if( ! resp.startsWith("OK") )
+    System.err.println("Lock failed");
+   
+  }
+  catch(IOException e)
+  {
+   System.err.println("Connection to server '"+config.getServer()+"' failed: "+e.getMessage());
+   System.exit(1);
+  }
+  
+ } 
  private static String login( Config config )
  {
   String appUrl = config.getServer();
