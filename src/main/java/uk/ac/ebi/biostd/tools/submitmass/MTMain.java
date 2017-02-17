@@ -21,7 +21,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
@@ -224,8 +223,11 @@ public class MTMain
 
   String lockerName = config.getLockerName();
   
+//  if( lockerName.length() == 0 )
+//   lockerName = UUID.randomUUID().toString();
+
   if( lockerName.length() == 0 )
-   lockerName = UUID.randomUUID().toString();
+   lockerName=null;
   
   long lastLockTime = 0;
   
@@ -297,18 +299,30 @@ public class MTMain
   
   int timeout = FILE_TERM_TIMEOUT_SEC;
   long stime = System.currentTimeMillis();
+  
+  boolean termOk=false;
+  
   while( timeout > 0 )
   {
    try
    {
-    fileExec.awaitTermination(timeout, TimeUnit.SECONDS);
-    break;
+    if( fileExec.awaitTermination(lockInterval, TimeUnit.MILLISECONDS) )
+    {
+     termOk = true;
+     break;
+    }
+    
+    lockExport(config, lockerName, true);
    }
    catch(InterruptedException e)
    {
-    timeout = FILE_TERM_TIMEOUT_SEC - (int)(System.currentTimeMillis()-stime)/1000;
    }
+
+   timeout = FILE_TERM_TIMEOUT_SEC - (int)(System.currentTimeMillis()-stime)/1000;
   }
+  
+  if( ! termOk )
+   System.err.println("File processors pool termination timeout exeeded");
   
   putToQueue(sbmQueue,new SubmitRequest());
   
@@ -320,19 +334,31 @@ public class MTMain
   
   timeout = SUBM_TERM_TIMEOUT_SEC;
   stime = System.currentTimeMillis();
+
+  termOk=false;
+  
   while( timeout > 0 )
   {
    try
    {
-    sbmExec.awaitTermination(timeout, TimeUnit.SECONDS);
-    break;
+    if( sbmExec.awaitTermination(lockInterval, TimeUnit.MILLISECONDS) )
+    {
+     termOk = true;
+     break;
+    }
+    
+    lockExport(config, lockerName, true);
    }
    catch(InterruptedException e)
    {
-    timeout = SUBM_TERM_TIMEOUT_SEC - (int)(System.currentTimeMillis()-stime)/1000;
    }
+
+   timeout = SUBM_TERM_TIMEOUT_SEC - (int)(System.currentTimeMillis()-stime)/1000;
   }
   
+  if( ! termOk )
+   System.err.println("Submission pool termination timeout exeeded");
+
   lockExport(config, lockerName, false);
   
   if( timeout <=0 )
@@ -387,6 +413,9 @@ public class MTMain
  
  private static void lockExport( Config config, String lckName, boolean lock )
  {
+  if( lckName == null )
+   return;
+  
   String appUrl = config.getServer();
 
   if(!appUrl.endsWith("/"))
@@ -417,16 +446,18 @@ public class MTMain
    conn.disconnect();
 
    if( ! resp.startsWith("OK") )
-    System.err.println("Lock failed");
+    System.err.println((lock?"Lock":"Unlock")+" failed");
    
   }
   catch(IOException e)
   {
-   System.err.println("Connection to server '"+config.getServer()+"' failed: "+e.getMessage());
+   System.err.println("Connection to server (lock operation) '"+config.getServer()+"' failed: "+e.getMessage());
    System.exit(1);
   }
   
  } 
+ 
+ 
  private static String login( Config config )
  {
   String appUrl = config.getServer();
