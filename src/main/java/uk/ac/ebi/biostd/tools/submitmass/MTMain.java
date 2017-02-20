@@ -278,7 +278,7 @@ public class MTMain
    if( (System.currentTimeMillis() - lastLockTime ) > lockInterval )
    {
     lastLockTime = System.currentTimeMillis();
-    lockExport(config, lockerName, true);
+    lockExport(config, lockerName, sessId, true);
    }
    
    FileRequest freq = new FileRequest();
@@ -312,7 +312,7 @@ public class MTMain
      break;
     }
     
-    lockExport(config, lockerName, true);
+    lockExport(config, lockerName, sessId, true);
    }
    catch(InterruptedException e)
    {
@@ -347,7 +347,7 @@ public class MTMain
      break;
     }
     
-    lockExport(config, lockerName, true);
+    lockExport(config, lockerName, sessId, true);
    }
    catch(InterruptedException e)
    {
@@ -359,7 +359,7 @@ public class MTMain
   if( ! termOk )
    System.err.println("Submission pool termination timeout exeeded");
 
-  lockExport(config, lockerName, false);
+  lockExport(config, lockerName, sessId, false);
   
   if( timeout <=0 )
    System.out.println("Submission thread pool termination failed");
@@ -411,7 +411,7 @@ public class MTMain
   System.err.println("      --lockerName unique name for backend export locking");
  }
  
- private static void lockExport( Config config, String lckName, boolean lock )
+ private static void lockExport( Config config, String lckName, String sessionId, boolean lock )
  {
   if( lckName == null )
    return;
@@ -441,6 +441,9 @@ public class MTMain
   try
   {
    HttpURLConnection conn = (HttpURLConnection) loginURL.openConnection();
+   
+   conn.addRequestProperty("X-Session-Token", sessionId);
+   
    String resp = StringUtils.readFully((InputStream)conn.getContent(), Charset.forName("utf-8"));
 
    conn.disconnect();
